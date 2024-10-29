@@ -6005,13 +6005,6 @@ nbctl_lrp_add(struct ctl_context *ctx)
             break;
         }
     }
-
-    if (!n_networks) {
-        ctl_error(ctx, "%s: router port requires specifying a network",
-                  lrp_name);
-        return;
-    }
-
     char **settings = (char **) &ctx->argv[n_networks + 4];
     int n_settings = ctx->argc - 4 - n_networks;
 
@@ -6020,6 +6013,25 @@ nbctl_lrp_add(struct ctl_context *ctx)
         ctl_error(ctx, "%s: invalid mac address %s", lrp_name, mac);
         return;
     }
+
+    if (!n_networks) {
+        char lla[2];
+        for(int i=0;i<2;i++){
+            //simple hash for test
+            lla[i] = ((73 * ea.ea[3*i]) +
+                      (29 * ea.ea[3*i +1]) +
+                      (193 * ea.ea[3*i +2])) % 256;
+        }
+        struct ds s;
+        ip_format_masked(0xc0fe0000 + (lla[0] << 8) + (lla[1]),0xffff0000,&s);
+        networks = malloc(sizeof(char*));
+        networks[0] = ds_cstr(&s);
+        n_networks=1;
+        /* ctl_error(ctx, "%s: router port requires specifying a network", */
+        /*           lrp_name); */
+        /* return; */
+    }
+
 
     const struct nbrec_logical_router_port *lrp;
     error = lrp_by_name_or_uuid(ctx, lrp_name, false, &lrp);
